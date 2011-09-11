@@ -1,6 +1,9 @@
 QR Code Encoder
 ===============
 
+It is clone of https://github.com/komone
+rebar version
+
 Reference used was ISO/IEC 18004, 1st Edition (2000)
 
 This implementation is informed by my specific needs, i.e. to provide
