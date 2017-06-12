@@ -5,7 +5,6 @@
  [{description, "QRCode Encoder"},
   {vsn, "1.0.0"},
   {modules, []},
-  {mod, {qrcode, []}},
   {registered, []},
   {env, []},
   {applications, [kernel, stdlib]}
