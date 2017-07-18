@@ -32,7 +32,7 @@ get_pixels(Bin, Count, Dim, Acc, {BoxSize, _, _}=Chunk) ->
 	<<RowBits:Dim/bits, Bits/bits>> = Bin,
 	Row = get_pixels0(RowBits, <<0>>, Chunk), % row filter byte
     Rest = 8 - bit_size(Row) rem 8,
-    RestBits = bits:duplicate(<<0:1>>, Rest),
+    RestBits = rest(Rest),
     NewRow = <<Row/bits, RestBits/bits>>,
 	FullRow = bits:duplicate(NewRow, BoxSize),
 	get_pixels(Bits, Count + 1, Dim, <<Acc/bits, FullRow/bits>>, Chunk).
@@ -43,3 +43,8 @@ get_pixels0(<<0:1, Bits/bits>>, Acc, {_, WhiteBits, _} = Chunk) ->
 	get_pixels0(Bits, <<Acc/bits, WhiteBits/bits>>, Chunk);
 get_pixels0(<<>>, Acc, _BoxSize) ->
 	Acc.
+
+rest(8) ->
+    <<>>;
+rest(N) ->
+    bits:duplicate(<<0:1>>, N).
