@@ -3,15 +3,16 @@
 
 -include("qrcode.hrl").
 
--export([simple_png_encode/1]).
+-export([simple_png_encode/2]).
 
 
 %% Very simple PNG encoder for demo purposes
-simple_png_encode(#qrcode{dimension = Dim, data = Data}) ->
+simple_png_encode(#qrcode{dimension = Dim, data = Data}, BoxSize) ->
+    Chunk = {BoxSize, bits:duplicate(<<1:1>>, BoxSize), bits:duplicate(<<0:1>>, BoxSize)},
 	MAGIC = <<137, 80, 78, 71, 13, 10, 26, 10>>,
-	Size = Dim * 8,
-	IHDR = png_chunk(<<"IHDR">>, <<Size:32, Size:32, 8:8, 2:8, 0:24>>),
-	PixelData = get_pixel_data(Dim, Data),
+	Size = Dim * BoxSize,
+	IHDR = png_chunk(<<"IHDR">>, <<Size:32, Size:32, 1:8, 0:8, 0:24>>),
+	PixelData = get_pixel_data(Dim, Data, Chunk),
 	IDAT = png_chunk(<<"IDAT">>, PixelData),
 	IEND = png_chunk(<<"IEND">>, <<>>),
 	<<MAGIC/binary, IHDR/binary, IDAT/binary, IEND/binary>>.
@@ -21,23 +22,24 @@ png_chunk(Type, Bin) ->
 	CRC = erlang:crc32(<<Type/binary, Bin/binary>>),
 	<<Length:32, Type/binary, Bin/binary, CRC:32>>.
 
-get_pixel_data(Dim, Data) ->
-	Pixels = get_pixels(Data, 0, Dim, <<>>),
+get_pixel_data(Dim, Data, Chunk) ->
+	Pixels = get_pixels(Data, 0, Dim, <<>>, Chunk),
 	zlib:compress(Pixels).
 
-get_pixels(<<>>, Dim, Dim, Acc) ->
+get_pixels(<<>>, Dim, Dim, Acc, _BoxSize) ->
 	Acc;
-get_pixels(Bin, Count, Dim, Acc) ->
+get_pixels(Bin, Count, Dim, Acc, {BoxSize, _, _}=Chunk) ->
 	<<RowBits:Dim/bits, Bits/bits>> = Bin,
-	Row = get_pixels0(RowBits, <<0>>), % row filter byte
-	FullRow = binary:copy(Row, 8),
-	get_pixels(Bits, Count + 1, Dim, <<Acc/binary, FullRow/binary>>).
+	Row = get_pixels0(RowBits, <<0>>, Chunk), % row filter byte
+    Rest = 8 - bit_size(Row) rem 8,
+    RestBits = bits:duplicate(<<0:1>>, Rest),
+    NewRow = <<Row/bits, RestBits/bits>>,
+	FullRow = bits:duplicate(NewRow, BoxSize),
+	get_pixels(Bits, Count + 1, Dim, <<Acc/bits, FullRow/bits>>, Chunk).
 
-get_pixels0(<<1:1, Bits/bits>>, Acc) ->
-	Black = binary:copy(<<0>>, 24),
-	get_pixels0(Bits, <<Acc/binary, Black/binary>>);
-get_pixels0(<<0:1, Bits/bits>>, Acc) ->
-	White = binary:copy(<<255>>, 24),
-	get_pixels0(Bits, <<Acc/binary, White/binary>>);
-get_pixels0(<<>>, Acc) ->
+get_pixels0(<<1:1, Bits/bits>>, Acc, {_, _, BlackBits}=Chunk) ->
+	get_pixels0(Bits, <<Acc/bits, BlackBits/bits>>, Chunk);
+get_pixels0(<<0:1, Bits/bits>>, Acc, {_, WhiteBits, _} = Chunk) ->
+	get_pixels0(Bits, <<Acc/bits, WhiteBits/bits>>, Chunk);
+get_pixels0(<<>>, Acc, _BoxSize) ->
 	Acc.

@@ -22,7 +22,7 @@
 -define(FORMAT_INFO_POLY, 1335).  % 16#0537 -> 0000 0101 0011 1110
 -define(FORMAT_INFO_MASK, 21522). % 16#5412 -> 0101 0100 0001 0010
 
--define(QUIET_ZONE, 4). % recommended value
+-define(QUIET_ZONE, 1). % recommended value
 
 %% Table 2. Mode Indicator
 -define(TERMINATOR, 0).

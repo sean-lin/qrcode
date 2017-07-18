@@ -17,17 +17,14 @@
 -include("qrcode.hrl").
 -include("qrcode_params.hrl").
 
--export([encode/1, encode/2, decode/1]).
-
-%%
-decode(_Bin) ->
-	{error, not_implemented}.
+-export([encode/1, encode/3]).
 
 %%
 encode(Bin) ->
-	encode(Bin, 'M').
+	encode(Bin, 'M', ?QUIET_ZONE).
+
 %
-encode(Bin, ECC) when is_binary(Bin) ->
+encode(Bin, ECC, QuiteZone) when is_binary(Bin) ->
 	Params = choose_qr_params(Bin, ECC),
 	Content = encode_content(Params, Bin),
 	BlocksWithECC = generate_ecc_blocks(Params, Content),
@@ -40,9 +37,9 @@ encode(Bin, ECC) when is_binary(Bin) ->
 	FMT = format_info_bits(Params0),
 	VSN = version_info_bits(Params0),
 	#qr_params{version = Version, dimension = Dim, ec_level = _ECC} = Params0,
-	QRCode = qrcode_matrix:finalize(Dim, FMT, VSN, ?QUIET_ZONE, SelectedMatrix),
+	QRCode = qrcode_matrix:finalize(Dim, FMT, VSN, QuiteZone, SelectedMatrix),
 	%% NOTE: Added "API" record
-	#qrcode{version = Version, ecc = ECC, dimension = Dim + ?QUIET_ZONE * 2, data = QRCode}.
+	#qrcode{version = Version, ecc = ECC, dimension = Dim + QuiteZone * 2, data = QRCode}.
 
 %%
 choose_qr_params(Bin, ECLevel) ->
